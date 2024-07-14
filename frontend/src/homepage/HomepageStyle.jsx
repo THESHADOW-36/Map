@@ -8,9 +8,22 @@ export const mapLay = {
    width: '100%',
 }
 
-export const navLay = {
+export const mapInfoLay = {
    backgroundColor: 'rgb(220, 220, 220)',
    minWidth: '320px',
+   display:'flex',
+   flexDirection:'column',
+   justifyContent:'space-between'
+}
+
+export const searchLay = {
+   border: '1px solid black',
+   padding: '30px 20px'
+}
+
+export const travelModeLay = {
+   border: '1px solid black',
+   padding: '30px 0px'
 }
 
 export const textField = {
@@ -37,10 +50,10 @@ export const searchButton = {
    marginBottom: '10px'
 }
 
-export const travelModeLay = {
-   display:'flex',
+export const travelModeBtn = {
+   display: 'flex',
    justifyContent: 'space-evenly',
-   marginTop:'30px'
+   marginTop: '30px'
 }
 
 export const infoBoxLay = {

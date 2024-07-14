@@ -1,6 +1,6 @@
 import { Avatar, Box, Button, Skeleton, TextField, Typography } from '@mui/material'
 import React, { useEffect, useRef, useState } from 'react'
-import { avatarLay, homepage, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, locationOn, mapLay, myLocationBtn, navLay, searchButton, searchButtonGrp, textField, travelModeLay } from './HomepageStyle'
+import { avatarLay, homepage, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, locationOn, mapInfo, mapInfoLay, mapLay, myLocationBtn, navLay, searchButton, searchButtonGrp, searchLay, textField, travelModeBtn, travelModeLay } from './HomepageStyle'
 import { AccessTime, Directions, DirectionsCar, DirectionsTransit, DirectionsWalk, LocationOn, MyLocation } from '@mui/icons-material';
 import { Autocomplete, DirectionsRenderer, GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api'
 
@@ -109,8 +109,8 @@ const Homepage = () => {
             </GoogleMap>
          </Box>
 
-         <Box sx={navLay}>
-            <Box sx={{ padding: '30px 20px' }}>
+         <Box sx={mapInfoLay}>
+            <Box sx={searchLay}>
                {searchMode ?
                   <>
                      <Autocomplete>
@@ -142,8 +142,14 @@ const Homepage = () => {
                   <Button variant="contained" sx={myLocationBtn} onClick={() => map.panTo(directionResponse ? originLocation : location)}><MyLocation fontSize='small' /></Button>
                </Box>
                <Button sx={searchButton} variant="contained" color="error" fullWidth onClick={clearRoute}>Cancel</Button>
+            </Box>
 
-               <Box sx={travelModeLay}>
+
+
+
+
+            <Box sx={travelModeLay}>
+               <Box sx={travelModeBtn}>
                   <Button variant='contained' onClick={() => setTravelMode('DRIVING')}><DirectionsCar /></Button>
                   <Button variant='contained' onClick={() => setTravelMode('TRANSIT')}><DirectionsTransit /></Button>
                   <Button variant='contained' onClick={() => setTravelMode('WALKING')}><DirectionsWalk /></Button>
@@ -169,7 +175,6 @@ const Homepage = () => {
                      <AccessTime sx={infoBoxIcon} />
                   </Avatar>
                </Box>
-
             </Box>
          </Box>
       </Box >
