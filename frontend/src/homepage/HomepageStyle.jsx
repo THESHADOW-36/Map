@@ -1,64 +1,93 @@
+
 export const homepage = {
+   position: 'relative',
    width: '100%',
    height: '100vh',
-   display: 'flex'
-}
-
-export const mapLay = {
-   width: '100%',
+   display: 'flex',
 }
 
 export const mapInfoLay = {
-   backgroundColor: 'rgb(220, 220, 220)',
-   minWidth: '320px',
-   display:'flex',
-   flexDirection:'column',
-   justifyContent:'space-between'
+   background: { xs: 'transparent', md: 'rgb(220, 220, 220)' },
+   position: { xs: 'absolute', md: 'static' },
+   minWidth: { xs: '100%', md: '320px' },
+   height: '100vh',
+   display: 'flex',
+   flexDirection: 'column',
+   justifyContent: { xs: 'space-between', md: 'flex-start' },
+   pointerEvents: 'none',
 }
 
 export const searchLay = {
-   border: '1px solid black',
-   padding: '30px 20px'
-}
-
-export const travelModeLay = {
-   border: '1px solid black',
-   padding: '30px 0px'
+   backgroundColor: { xs: 'rgba(128, 128, 128, 0.8)', md: 'rgb(220, 220, 220)' },
+   padding: { xs: '18px 20px', md: '30px 20px' },
+   pointerEvents: 'auto',
 }
 
 export const textField = {
    backgroundColor: 'white',
-   marginBottom: '20px',
+   marginBottom: { xs: '10px', md: '20px' },
 }
 
-export const searchButtonGrp = {
+export const searchModeBtn = {
    display: 'flex',
-   marginBottom: '10px'
+   alignItems: 'center',
+   justifyContent: 'center',
+   height: '100%',
+   padding: '6px 0px',
 }
 
-export const locationOn = {
-   minWidth: '0',
-   marginRight: '8px'
+export const searchBtnXs = {
+   display: { xs: 'flex', md: 'none' },
+   alignItems: 'center',
+   justifyContent: 'center',
+   height: '100%',
+   padding: '6px 0px',
 }
 
-export const myLocationBtn = {
-   minWidth: '0',
-   marginLeft: '8px'
+export const searchBtnLg = {
+   display: { xs: 'none', md: 'flex' },
+   alignItems: 'center',
+   justifyContent: 'center',
+   height: '100%',
+   padding: '6px 0px',
 }
 
-export const searchButton = {
-   marginBottom: '10px'
+export const searchCancelBtnXs = {
+   display: { xs: 'flex', md: 'none' },
+   alignItems: 'center',
+   justifyContent: 'center',
+   height: '100%',
+   padding: '6px 0px',
+}
+
+export const searchCancelBtnLg = {
+   display: { xs: 'none', md: 'flex' },
+   alignItems: 'center',
+   justifyContent: 'center',
+   height: '100%',
+   padding: '6px 0px',
+}
+
+export const travelModeLay = {
+   backgroundColor: { xs: 'rgba(128, 128, 128, 0.8)', md: 'rgb(220, 220, 220)' },
+   padding: { xs: '0px 0px 18px', md: '30px 0px' },
+   pointerEvents: 'auto',
 }
 
 export const travelModeBtn = {
    display: 'flex',
    justifyContent: 'space-evenly',
-   marginTop: '30px'
+   marginTop: { md: '30px' },
+   padding: { md: '0px 20px' }
+}
+
+export const infoBoxContainer = {
+   display: { xs: 'flex', md: 'block' }
 }
 
 export const infoBoxLay = {
-   width: '80%',
-   height: '75px',
+   width: { xs: '45%', md: '80%' },
+   height: { xs: '50px', md: '75px' },
    display: 'flex',
    alignItems: 'center',
    margin: 'auto',
@@ -66,11 +95,11 @@ export const infoBoxLay = {
 }
 
 export const infoBoxContent = {
-   backgroundColor: 'rgb(238, 238, 238)',
-   border: '2px solid gray',
+   backgroundColor: 'rgb(245, 245, 245)',
+   border: '2px solid rgb(245, 245, 245)',
    width: '100%',
    height: '100%',
-   marginRight: '-50px',
+   marginRight: { xs: '-20px', md: '-50px' },
    display: 'flex',
    alignItems: 'center',
    justifyContent: 'center',
@@ -82,14 +111,14 @@ export const infoBoxText = {
 }
 
 export const avatarLay = {
-   border: '3px solid gray',
+   border: '3px solid rgb(220, 220, 220)',
    backgroundColor: 'white',
    color: 'black',
-   width: '80px',
+   width: { xs: '50px', md: '80px' },
    height: '100%',
 }
 
 export const infoBoxIcon = {
    color: 'rgb(50, 50, 50)',
-   fontSize: '46px'
+   fontSize: { xs: '36px', md: '46px' }
 }

@@ -1,7 +1,7 @@
-import { Avatar, Box, Button, Skeleton, TextField, Typography } from '@mui/material'
+import { Avatar, Box, Button, ButtonGroup, Grid, Skeleton, TextField, Typography } from '@mui/material'
 import React, { useEffect, useRef, useState } from 'react'
-import { avatarLay, homepage, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, locationOn, mapInfo, mapInfoLay, mapLay, myLocationBtn, navLay, searchButton, searchButtonGrp, searchLay, textField, travelModeBtn, travelModeLay } from './HomepageStyle'
-import { AccessTime, Directions, DirectionsCar, DirectionsTransit, DirectionsWalk, LocationOn, MyLocation } from '@mui/icons-material';
+import { avatarLay, homepage, infoBoxContainer, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, mapInfoLay, mapLay, searchBtnLg, searchBtnXs, searchCancelBtnLg, searchCancelBtnXs, searchLay, searchModeBtn, textField, travelModeBtn, travelModeLay } from './HomepageStyle'
+import { AccessTime, Directions, DirectionsCar, DirectionsTransit, DirectionsWalk, HighlightOff, LocationOn, MyLocation, Search } from '@mui/icons-material';
 import { Autocomplete, DirectionsRenderer, GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api'
 
 const Homepage = () => {
@@ -19,6 +19,7 @@ const Homepage = () => {
    const [duration, setDuration] = useState("");
    const [travelMode, setTravelMode] = useState('DRIVING');
    const [searchMode, setSearchMode] = useState(true);
+   const [fromInputValue, setFromInputValue] = useState("")
 
    const locationRef = useRef();
    const fromRef = useRef();
@@ -92,12 +93,17 @@ const Homepage = () => {
       // eslint-disable-next-line
    }, [travelMode]);
 
+   useEffect(() => {
+      setFromInputValue(fromRef.current?.value)
+      // eslint-disable-next-line
+   }, [fromRef.current?.value]);
+
    if (!isLoaded) {
       return <Skeleton variant="rectangular" width={210} />
    }
    return (
       <Box sx={homepage}>
-         <Box sx={mapLay}>
+         <Box width='100%'>
             <GoogleMap
                mapContainerStyle={{ width: '100%', height: '100%' }}
                center={location ? location : center}
@@ -114,10 +120,10 @@ const Homepage = () => {
                {searchMode ?
                   <>
                      <Autocomplete>
-                        <TextField sx={textField} label="From" variant="outlined" size="small" inputRef={fromRef} fullWidth />
+                        <TextField sx={textField} label="From" variant="outlined" size="small" inputRef={fromRef} onChange={() => setFromInputValue(fromRef.current.value)} fullWidth />
                      </Autocomplete>
                      <Autocomplete>
-                        <TextField sx={textField} label="To" variant="outlined" size="small" inputRef={toRef} fullWidth />
+                        <TextField sx={textField} label="To" variant="outlined" size="small" inputRef={toRef} fullWidth disabled={!fromInputValue} />
                      </Autocomplete>
                   </>
                   :
@@ -126,22 +132,37 @@ const Homepage = () => {
                   </Autocomplete>
                }
 
-               <Box sx={searchButtonGrp} >
+               <Grid container spacing={2}>
                   {searchMode ?
                      <>
-                        <Button variant="contained" sx={locationOn} onClick={() => handleSearchMode(false)}><LocationOn fontSize='small' /></Button>
-                        <Button variant="contained" fullWidth onClick={calculateRoute}>Search</Button>
+                        <Grid item xs={3}>
+                           <Button variant="contained" sx={searchModeBtn} onClick={() => handleSearchMode(false)} fullWidth><LocationOn fontSize='small' /></Button>
+                        </Grid>
+                        <Grid item xs={3} md={6} container justifyContent="center">
+                           <Button variant="contained" sx={searchBtnXs} fullWidth onClick={calculateRoute}><Search /></Button>
+                           <Button variant="contained" sx={searchBtnLg} fullWidth onClick={calculateRoute}>Search</Button>
+                        </Grid>
                      </>
                      :
                      <>
-                        <Button variant="contained" sx={locationOn} onClick={() => handleSearchMode(true)}><Directions /></Button>
-                        <Button variant="contained" fullWidth onClick={markLocation}>Search</Button>
+                        <Grid item xs={3}>
+                           <Button variant="contained" sx={searchModeBtn} onClick={() => handleSearchMode(true)} fullWidth><Directions /></Button>
+                        </Grid>
+                        <Grid item xs={3} md={6} container justifyContent="center">
+                           <Button variant="contained" sx={searchBtnXs} fullWidth onClick={markLocation}><Search /></Button>
+                           <Button variant="contained" sx={searchBtnLg} fullWidth onClick={markLocation}>Search</Button>
+                        </Grid>
                      </>
                   }
 
-                  <Button variant="contained" sx={myLocationBtn} onClick={() => map.panTo(directionResponse ? originLocation : location)}><MyLocation fontSize='small' /></Button>
-               </Box>
-               <Button sx={searchButton} variant="contained" color="error" fullWidth onClick={clearRoute}>Cancel</Button>
+                  <Grid item xs={3} container justifyContent="flex-end">
+                     <Button variant="contained" sx={searchModeBtn} onClick={() => map.panTo(directionResponse ? originLocation : location)} fullWidth><MyLocation fontSize='small' /></Button>
+                  </Grid>
+                  <Grid item xs={3} md={12}>
+                     <Button variant="contained" sx={searchCancelBtnXs} color="error" fullWidth onClick={clearRoute}><HighlightOff /></Button>
+                     <Button variant="contained" sx={searchCancelBtnLg} color="error" fullWidth onClick={clearRoute}>Cancel</Button>
+                  </Grid>
+               </Grid>
             </Box>
 
 
@@ -150,30 +171,32 @@ const Homepage = () => {
 
             <Box sx={travelModeLay}>
                <Box sx={travelModeBtn}>
-                  <Button variant='contained' onClick={() => setTravelMode('DRIVING')}><DirectionsCar /></Button>
-                  <Button variant='contained' onClick={() => setTravelMode('TRANSIT')}><DirectionsTransit /></Button>
-                  <Button variant='contained' onClick={() => setTravelMode('WALKING')}><DirectionsWalk /></Button>
+                  <Button variant='contained' sx={{ margin: '0px 2px' }} fullWidth onClick={() => setTravelMode('DRIVING')}><DirectionsCar /></Button>
+                  <Button variant='contained' sx={{ margin: '0px 2px' }} fullWidth onClick={() => setTravelMode('TRANSIT')}><DirectionsTransit /></Button>
+                  <Button variant='contained' sx={{ margin: '0px 2px' }} fullWidth onClick={() => setTravelMode('WALKING')}><DirectionsWalk /></Button>
                </Box>
 
-               <Box sx={infoBoxLay}>
-                  <Box sx={infoBoxContent} borderRadius={2}>
-                     <Typography sx={infoBoxText}>{distance ? distance : '0 km'}</Typography>
+               <Box sx={infoBoxContainer}>
+                  <Box sx={infoBoxLay}>
+                     <Box sx={infoBoxContent} borderRadius={2}>
+                        <Typography sx={infoBoxText}>{distance ? distance : '0 km'}</Typography>
+                     </Box>
+                     <Avatar sx={avatarLay}>
+                        {/* <i className="fa-solid fa-car-side fa-xl"></i> */}
+                        {travelMode === "DRIVING" && <DirectionsCar fontSize='large' />}
+                        {travelMode === "TRANSIT" && <DirectionsTransit fontSize='large' />}
+                        {travelMode === "WALKING" && <DirectionsWalk fontSize='large' />}
+                     </Avatar>
                   </Box>
-                  <Avatar sx={avatarLay}>
-                     {/* <i className="fa-solid fa-car-side fa-xl"></i> */}
-                     {travelMode === "DRIVING" && <DirectionsCar fontSize='large' />}
-                     {travelMode === "TRANSIT" && <DirectionsTransit fontSize='large' />}
-                     {travelMode === "WALKING" && <DirectionsWalk fontSize='large' />}
-                  </Avatar>
-               </Box>
 
-               <Box sx={infoBoxLay}>
-                  <Box sx={infoBoxContent} borderRadius={2}>
-                     <Typography sx={infoBoxText}>{duration ? duration : '0 min'}</Typography>
+                  <Box sx={infoBoxLay}>
+                     <Box sx={infoBoxContent} borderRadius={2}>
+                        <Typography sx={infoBoxText}>{duration ? duration : '0 min'}</Typography>
+                     </Box>
+                     <Avatar sx={avatarLay}>
+                        <AccessTime sx={infoBoxIcon} />
+                     </Avatar>
                   </Box>
-                  <Avatar sx={avatarLay}>
-                     <AccessTime sx={infoBoxIcon} />
-                  </Avatar>
                </Box>
             </Box>
          </Box>
