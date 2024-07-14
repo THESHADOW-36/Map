@@ -5,17 +5,17 @@ export const homepage = {
 }
 
 export const mapLay = {
-   width: '75%',
+   width: '100%',
 }
 
 export const navLay = {
    backgroundColor: 'rgb(220, 220, 220)',
-   width: '25%',
+   minWidth: '320px',
 }
 
 export const textField = {
    backgroundColor: 'white',
-   marginBottom: '20px'
+   marginBottom: '20px',
 }
 
 export const searchButtonGrp = {
