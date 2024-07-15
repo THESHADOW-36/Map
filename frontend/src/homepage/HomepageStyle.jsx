@@ -15,6 +15,7 @@ export const mapInfoLay = {
    flexDirection: 'column',
    justifyContent: { xs: 'space-between', md: 'flex-start' },
    pointerEvents: 'none',
+   zIndex: '100'
 }
 
 export const searchLay = {

@@ -1,135 +1,184 @@
-import { Avatar, Box, Button, ButtonGroup, Grid, Skeleton, TextField, Typography } from '@mui/material'
-import React, { useEffect, useRef, useState } from 'react'
-import { avatarLay, homepage, infoBoxContainer, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, mapInfoLay, mapLay, searchBtnLg, searchBtnXs, searchCancelBtnLg, searchCancelBtnXs, searchLay, searchModeBtn, textField, travelModeBtn, travelModeLay } from './HomepageStyle'
+import React, { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
+import axios from 'axios';
+import 'leaflet/dist/leaflet.css';
+import { Autocomplete, Avatar, Box, Button, Grid, TextField, Typography } from '@mui/material'
+import { avatarLay, homepage, infoBoxContainer, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, mapInfoLay, searchBtnLg, searchBtnXs, searchCancelBtnLg, searchCancelBtnXs, searchLay, searchModeBtn, textField, travelModeBtn, travelModeLay } from './HomepageStyle'
 import { AccessTime, Directions, DirectionsCar, DirectionsTransit, DirectionsWalk, HighlightOff, LocationOn, MyLocation, Search } from '@mui/icons-material';
-import { Autocomplete, DirectionsRenderer, GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api'
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+
+
+// import DeckGL from "@deck.gl/react";
+// import StaticMap from "react-map-gl";
+// import maplibregl from "maplibre-gl";
+// import { Map as MapLibreMap, NavigationControl } from "maplibre-gl";
+// import "maplibre-gl/dist/maplibre-gl.css";
+
 
 const Homepage = () => {
+   // const [mapReady, setMapReady] = useState(false);
 
-   // eslint-disable-next-line
-   const { isLoaded } = useJsApiLoader({
-      googleMapsApiKey: process.env.REACT_APP_MAP_API_KEY,
-      libraries: ['places'],
-   })
-
-   const [map, setMap] = useState(null);
-   const [directionResponse, setDirectionResponse] = useState(null);
+   const [predictions, setPredictions] = useState([]);
+   const [fromLocation, setFromLocation] = useState(null);
+   const [toLocation, setToLocation] = useState(null);
    const [location, setLocation] = useState(null);
-   const [distance, setDistance] = useState("");
-   const [duration, setDuration] = useState("");
    const [travelMode, setTravelMode] = useState('DRIVING');
    const [searchMode, setSearchMode] = useState(true);
-   const [fromInputValue, setFromInputValue] = useState("")
+   const [distance, setDistance] = useState("");
+   const [duration, setDuration] = useState("");
+   const [route, setRoute] = useState([]);
+   console.log(route.flat())
 
-   const locationRef = useRef();
-   const fromRef = useRef();
-   const toRef = useRef();
+   const fromGeoCoder = fromLocation?.lat + '%2C' + fromLocation?.lng
+   const toGeoCoder = toLocation?.lat + '%2C' + toLocation?.lng
 
-   const center = { lat: 19.0330, lng: 73.0297 }
-   const originLocation = {
-      lat: directionResponse?.routes[0].legs[0].start_location.lat(),
-      lng: directionResponse?.routes[0].legs[0].start_location.lng(),
+
+   const center = [19.0330, 73.0297]
+   const clearRoute = () => {
+      setFromLocation(null)
+      setToLocation(null)
+      setLocation(null)
+      setDistance("")
+      setDuration("")
+      setPredictions([]);
+   }
+
+   const handleSearchMode = (value) => {
+      setSearchMode(value)
+      // clearRoute()
    }
 
    const calculateRoute = async () => {
-      if (!isLoaded || fromRef.current.value === "" || toRef.current.value === "") {
-         return
+      if (toLocation === null || fromLocation === null) {
+         return toast.error("Empty field")
       }
 
-      const directionsService = new window.google.maps.DirectionsService()
-
       try {
-         const result = await directionsService.route({
-            origin: fromRef.current.value,
-            destination: toRef.current.value,
-            travelMode: window.google.maps.TravelMode[travelMode]
-         })
 
-         setDirectionResponse(result)
-         setDistance(result.routes[0].legs[0].distance.text)
-         setDuration(result.routes[0].legs[0].duration.text)
+         const response = await axios.post(`https://api.olamaps.io/routing/v1/directions?origin=${fromGeoCoder}&destination=${toGeoCoder}&alternatives=false&steps=true&overview=full&language=en&traffic_metadata=false&api_key=58q7R2LaL3IlQ7BYkNKaZOlyJsJSuVtFos1MOYe3`);
+
+         console.log("response.data.routes[0].legs[0].steps", response.data.routes[0].legs[0].steps)
+         setRoute(response.data.routes[0].legs[0].steps.map((map) => ([[map.start_location?.lat, map.start_location?.lng], [map.end_location?.lat, map.end_location?.lng]])))
+         setDistance(response.data.routes[0].legs[0].distance)
+         setDuration(response.data.routes[0].legs[0].duration)
       } catch (error) {
          console.error('Directions request failed:', error);
       }
    }
 
-   const markLocation = () => {
-      if (!isLoaded || locationRef.current.value === "") {
-         return
-      }
 
-      const geoCoder = new window.google.maps.Geocoder();
-      geoCoder.geocode({ address: locationRef.current.value }, (result, status) => {
-         if (status === "OK") {
-            setLocation({ lat: result[0].geometry.location.lat(), lng: result[0].geometry.location.lng() })
-         } else {
-            console.log(status)
-         }
-      })
-   }
+   const handleAutocomplete = async (input, inputName) => {
+      if (!input) return;
 
-   const clearRoute = () => {
-      setDirectionResponse(null)
-      setLocation(null);
-      setDistance("")
-      setDuration("")
-      if (searchMode) {
-         fromRef.current.value = ""
-         toRef.current.value = ""
-      } else {
-         locationRef.current.value = ""
+      try {
+         const response = await axios.get(`https://api.olamaps.io/places/v1/autocomplete`, {
+            params: {
+               input: input,
+               api_key: process.env.REACT_APP_MAP_API_KEY
+            }
+         });
+         setPredictions(response.data.predictions);
+
+      } catch (error) {
+         console.error('Autocomplete request failed:', error);
       }
    }
-
-   const handleSearchMode = (value) => {
-      setSearchMode(value)
-      clearRoute()
-   }
+   const handleSelectPrediction = (prediction, inputName) => {
+      if (inputName === 'From') {
+         setFromLocation(prediction?.geometry?.location);
+      } else if (inputName === 'To') {
+         setToLocation(prediction?.geometry?.location)
+      } else if (inputName === 'Location') {
+         setLocation(prediction?.geometry?.location)
+      }
+      setPredictions([]);
+   };
 
    useEffect(() => {
-      if (fromRef.current?.value && toRef.current?.value) {
+      if (fromLocation && toLocation) {
          calculateRoute();
       }
       // eslint-disable-next-line
    }, [travelMode]);
+   // useEffect(() => {
+   //    if (!mapReady) return;
 
-   useEffect(() => {
-      setFromInputValue(fromRef.current?.value)
-      // eslint-disable-next-line
-   }, [fromRef.current?.value]);
+   //    const map = new MapLibreMap({
+   //       container: "central-map",
+   //       center: [0, 0],
+   //       zoom: 0,
+   //       style: "https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/style.json",
+   //       transformRequest: (url, resourceType) => {
+   //          url = url + `?api_key=${process.env.REACT_APP_MAP_API_KEY}`;
+   //          return { url, resourceType };
+   //       },
+   //    });
 
-   if (!isLoaded) {
-      return <Skeleton variant="rectangular" width={210} />
-   }
+   //    const nav = new NavigationControl({
+   //       visualizePitch: true,
+   //    });
+   //    map.addControl(nav, "top-left");
+   // }, [mapReady]);
    return (
       <Box sx={homepage}>
          <Box width='100%'>
-            <GoogleMap
-               mapContainerStyle={{ width: '100%', height: '100%' }}
-               center={location ? location : center}
-               zoom={13}
-               onLoad={(map) => setMap(map)}
-            >
-               {location && <Marker position={location} />}
-               {directionResponse && <DirectionsRenderer directions={directionResponse} />}
-            </GoogleMap>
+            <MapContainer center={location ? location : center} zoom={13} style={{ zIndex: '1', height: '1000px', width: '100%' }}>
+               <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+               />
+               {location &&
+                  <Marker position={location}></Marker>
+               }
+               <Polyline positions={route} color="blue" />
+            </MapContainer>
+            {/* <div
+              style={{ width: "100%", height: "100vh", overflow: "hidden" }}
+              ref={() => setMapReady(true)}
+              id="central-map"
+            /> */}
          </Box>
 
          <Box sx={mapInfoLay}>
             <Box sx={searchLay}>
                {searchMode ?
                   <>
-                     <Autocomplete>
+                     {/* <Autocomplete>
                         <TextField sx={textField} label="From" variant="outlined" size="small" inputRef={fromRef} onChange={() => setFromInputValue(fromRef.current.value)} fullWidth />
                      </Autocomplete>
                      <Autocomplete>
                         <TextField sx={textField} label="To" variant="outlined" size="small" inputRef={toRef} fullWidth disabled={!fromInputValue} />
-                     </Autocomplete>
+                     </Autocomplete> */}
+
+                     <Autocomplete
+                        sx={textField}
+                        id="autocomplete-from-loc-input"
+                        options={predictions}
+                        getOptionLabel={(option) => option.description}
+                        onInputChange={(event, newValue) => handleAutocomplete(newValue, 'From')}
+                        renderInput={(params) => <TextField {...params} label="From" variant="outlined" size="small" fullWidth />}
+                        onChange={(event, value) => handleSelectPrediction(value, 'From')}
+                     />
+                     <Autocomplete
+                        sx={textField}
+                        id="autocomplete-to-loc-input"
+                        options={predictions}
+                        getOptionLabel={(option) => option.description}
+                        onInputChange={(event, newValue) => handleAutocomplete(newValue, 'To')}
+                        renderInput={(params) => <TextField {...params} label="To" variant="outlined" size="small" fullWidth />}
+                        onChange={(event, value) => handleSelectPrediction(value, 'To')}
+                     />
                   </>
                   :
-                  < Autocomplete >
-                     <TextField sx={textField} label="Location" variant="outlined" size="small" inputRef={locationRef} fullWidth />
-                  </Autocomplete>
+                  <Autocomplete
+                     sx={textField}
+                     id="autocomplete-loc-input"
+                     options={predictions}
+                     getOptionLabel={(option) => option.description}
+                     onInputChange={(event, newValue) => handleAutocomplete(newValue, 'Location')}
+                     renderInput={(params) => <TextField {...params} label="Location" variant="outlined" size="small" fullWidth />}
+                     onChange={(event, value) => handleSelectPrediction(value, 'Location')}
+                  />
                }
 
                <Grid container spacing={2}>
@@ -149,14 +198,14 @@ const Homepage = () => {
                            <Button variant="contained" sx={searchModeBtn} onClick={() => handleSearchMode(true)} fullWidth><Directions /></Button>
                         </Grid>
                         <Grid item xs={3} md={6} container justifyContent="center">
-                           <Button variant="contained" sx={searchBtnXs} fullWidth onClick={markLocation}><Search /></Button>
-                           <Button variant="contained" sx={searchBtnLg} fullWidth onClick={markLocation}>Search</Button>
+                           <Button variant="contained" sx={searchBtnXs} fullWidth ><Search /></Button>
+                           <Button variant="contained" sx={searchBtnLg} fullWidth >Search</Button>
                         </Grid>
                      </>
                   }
 
                   <Grid item xs={3} container justifyContent="flex-end">
-                     <Button variant="contained" sx={searchModeBtn} onClick={() => map.panTo(directionResponse ? originLocation : location)} fullWidth><MyLocation fontSize='small' /></Button>
+                     <Button variant="contained" sx={searchModeBtn} fullWidth><MyLocation fontSize='small' /></Button>
                   </Grid>
                   <Grid item xs={3} md={12}>
                      <Button variant="contained" sx={searchCancelBtnXs} color="error" fullWidth onClick={clearRoute}><HighlightOff /></Button>
@@ -179,7 +228,7 @@ const Homepage = () => {
                <Box sx={infoBoxContainer}>
                   <Box sx={infoBoxLay}>
                      <Box sx={infoBoxContent} borderRadius={2}>
-                        <Typography sx={infoBoxText}>{distance ? distance : '0 km'}</Typography>
+                        <Typography sx={infoBoxText}>{distance ? distance : 0} M</Typography>
                      </Box>
                      <Avatar sx={avatarLay}>
                         {/* <i className="fa-solid fa-car-side fa-xl"></i> */}
@@ -191,7 +240,7 @@ const Homepage = () => {
 
                   <Box sx={infoBoxLay}>
                      <Box sx={infoBoxContent} borderRadius={2}>
-                        <Typography sx={infoBoxText}>{duration ? duration : '0 min'}</Typography>
+                        <Typography sx={infoBoxText}>{duration ? duration : 0} Mins</Typography>
                      </Box>
                      <Avatar sx={avatarLay}>
                         <AccessTime sx={infoBoxIcon} />
