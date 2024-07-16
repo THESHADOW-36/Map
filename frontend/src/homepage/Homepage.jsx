@@ -1,22 +1,18 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
 import { Autocomplete, Avatar, Box, Button, Grid, TextField, Typography } from '@mui/material'
 import { avatarLay, homepage, infoBoxContainer, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, mapInfoLay, searchBtnLg, searchBtnXs, searchCancelBtnLg, searchCancelBtnXs, searchLay, searchModeBtn, textField, travelModeBtn, travelModeLay } from './HomepageStyle'
 import { AccessTime, Directions, DirectionsCar, DirectionsTransit, DirectionsWalk, HighlightOff, LocationOn, MyLocation, Search } from '@mui/icons-material';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 
+import 'maplibre-gl/dist/maplibre-gl.css';
+import './Map.css';
 
-// import DeckGL from "@deck.gl/react";
-// import StaticMap from "react-map-gl";
-// import maplibregl from "maplibre-gl";
-// import { Map as MapLibreMap, NavigationControl } from "maplibre-gl";
-// import "maplibre-gl/dist/maplibre-gl.css";
-
+import * as maptilersdk from '@maptiler/sdk';
+import { decodePolyline } from '../utils/decodePolyline';
 
 const Homepage = () => {
-   // const [mapReady, setMapReady] = useState(false);
 
    const [predictions, setPredictions] = useState([]);
    const [fromLocation, setFromLocation] = useState(null);
@@ -27,13 +23,17 @@ const Homepage = () => {
    const [distance, setDistance] = useState("");
    const [duration, setDuration] = useState("");
    const [route, setRoute] = useState([]);
-   console.log(route.flat())
+
+   const mapContainer = useRef(null);
+   const map = useRef(null);
+   maptilersdk.config.apiKey = 'o80P0bXGur9l8vrfOHHN';
+
 
    const fromGeoCoder = fromLocation?.lat + '%2C' + fromLocation?.lng
    const toGeoCoder = toLocation?.lat + '%2C' + toLocation?.lng
 
 
-   const center = [19.0330, 73.0297]
+   const center = [73.0297, 19.0330]
    const clearRoute = () => {
       setFromLocation(null)
       setToLocation(null)
@@ -41,7 +41,9 @@ const Homepage = () => {
       setDistance("")
       setDuration("")
       setPredictions([]);
+      setRoute([]);
    }
+
 
    const handleSearchMode = (value) => {
       setSearchMode(value)
@@ -52,15 +54,22 @@ const Homepage = () => {
       if (toLocation === null || fromLocation === null) {
          return toast.error("Empty field")
       }
-
       try {
 
          const response = await axios.post(`https://api.olamaps.io/routing/v1/directions?origin=${fromGeoCoder}&destination=${toGeoCoder}&alternatives=false&steps=true&overview=full&language=en&traffic_metadata=false&api_key=58q7R2LaL3IlQ7BYkNKaZOlyJsJSuVtFos1MOYe3`);
 
-         console.log("response.data.routes[0].legs[0].steps", response.data.routes[0].legs[0].steps)
-         setRoute(response.data.routes[0].legs[0].steps.map((map) => ([[map.start_location?.lat, map.start_location?.lng], [map.end_location?.lat, map.end_location?.lng]])))
-         setDistance(response.data.routes[0].legs[0].distance)
-         setDuration(response.data.routes[0].legs[0].duration)
+         const decodedRoute = decodePolyline(response.data.routes[0].overview_polyline);
+
+         setRoute(decodedRoute.map(point => [point.lng, point.lat]))
+
+         const distance = response.data.routes[0].legs[0].distance
+         const distanceInKm = (distance / 1000).toFixed(2);
+         setDistance(`${distanceInKm} KM`);
+
+         const durationInSeconds = response.data.routes[0].legs[0].duration;
+         const hours = Math.floor(durationInSeconds / 3600);
+         const minutes = Math.floor((durationInSeconds % 3600) / 60);
+         setDuration(`${hours} Hrs ${minutes} Mins`);
       } catch (error) {
          console.error('Directions request failed:', error);
       }
@@ -74,9 +83,10 @@ const Homepage = () => {
          const response = await axios.get(`https://api.olamaps.io/places/v1/autocomplete`, {
             params: {
                input: input,
-               api_key: process.env.REACT_APP_MAP_API_KEY
+               api_key: process.env.REACT_APP_OLA_MAP_API_KEY
             }
          });
+         console.log("response:", response.data)
          setPredictions(response.data.predictions);
 
       } catch (error) {
@@ -91,38 +101,93 @@ const Homepage = () => {
       } else if (inputName === 'Location') {
          setLocation(prediction?.geometry?.location)
       }
-      setPredictions([]);
+      // setPredictions([]);
    };
+
+   const maptiler = () => {
+      if (map.current) return;
+      map.current = new maptilersdk.Map({
+         container: mapContainer.current,
+         zoom: 12,
+         center: center,
+         style: "streets-v2"
+      });
+
+      map.current.on('load', async () => {
+         map.current.addSource('route', {
+            type: 'geojson',
+            data: {
+               type: 'Feature',
+               properties: {},
+               geometry: {
+                  type: 'LineString',
+                  coordinates: []
+               }
+            }
+         });
+
+         map.current.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+               'line-join': 'round',
+               'line-cap': 'round'
+            },
+            paint: {
+               'line-color': '#3887be',
+               'line-width': 5,
+               'line-opacity': 0.75
+            }
+         });
+
+         if (fromLocation) {
+            new maptilersdk.Marker({ color: "#FF0000" })
+               .setLngLat(route.flat()[0])
+               .addTo(map.current);
+         }
+
+         if (toLocation) {
+            new maptilersdk.Marker({ color: "#FF0000" })
+               .setLngLat([toLocation.lng, toLocation.lat])
+               .addTo(map.current);
+         }
+      });
+   }
 
    useEffect(() => {
       if (fromLocation && toLocation) {
          calculateRoute();
       }
       // eslint-disable-next-line
-   }, [travelMode]);
-   // useEffect(() => {
-   //    if (!mapReady) return;
+   }, [travelMode, location]);
 
-   //    const map = new MapLibreMap({
-   //       container: "central-map",
-   //       center: [0, 0],
-   //       zoom: 0,
-   //       style: "https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/style.json",
-   //       transformRequest: (url, resourceType) => {
-   //          url = url + `?api_key=${process.env.REACT_APP_MAP_API_KEY}`;
-   //          return { url, resourceType };
-   //       },
-   //    });
+   useEffect(() => {
+      maptiler()
+   }, [center, fromLocation, toLocation]);
 
-   //    const nav = new NavigationControl({
-   //       visualizePitch: true,
-   //    });
-   //    map.addControl(nav, "top-left");
-   // }, [mapReady]);
+   useEffect(() => {
+      if (route.length > 0 && map.current) {
+         const mapRoute = map.current.getSource('route').setData({
+            type: 'Feature',
+            properties: {},
+            geometry: {
+               type: 'LineString',
+               coordinates: route
+            }
+         });
+      }
+   }, [route]);
+
+
+
+
+
+   console.log("Boolean(fromLocation) :", !Boolean(fromLocation))
    return (
       <Box sx={homepage}>
-         <Box width='100%'>
-            <MapContainer center={location ? location : center} zoom={13} style={{ zIndex: '1', height: '1000px', width: '100%' }}>
+         <Box>
+            {/* <MapContainer center={location ? location : center} zoom={13} style={{ zIndex: '1', height: '1000px', width: '100%' }}>
                <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -131,25 +196,16 @@ const Homepage = () => {
                   <Marker position={location}></Marker>
                }
                <Polyline positions={route} color="blue" />
-            </MapContainer>
-            {/* <div
-              style={{ width: "100%", height: "100vh", overflow: "hidden" }}
-              ref={() => setMapReady(true)}
-              id="central-map"
-            /> */}
+            </MapContainer> */}
+            {/* <div className="map-wrap">
+               <div ref={mapContainer} className="map" />
+            </div> */}
          </Box>
-
+         <Box width="100%" height="100%" ref={mapContainer} />
          <Box sx={mapInfoLay}>
             <Box sx={searchLay}>
                {searchMode ?
                   <>
-                     {/* <Autocomplete>
-                        <TextField sx={textField} label="From" variant="outlined" size="small" inputRef={fromRef} onChange={() => setFromInputValue(fromRef.current.value)} fullWidth />
-                     </Autocomplete>
-                     <Autocomplete>
-                        <TextField sx={textField} label="To" variant="outlined" size="small" inputRef={toRef} fullWidth disabled={!fromInputValue} />
-                     </Autocomplete> */}
-
                      <Autocomplete
                         sx={textField}
                         id="autocomplete-from-loc-input"
@@ -228,7 +284,7 @@ const Homepage = () => {
                <Box sx={infoBoxContainer}>
                   <Box sx={infoBoxLay}>
                      <Box sx={infoBoxContent} borderRadius={2}>
-                        <Typography sx={infoBoxText}>{distance ? distance : 0} M</Typography>
+                        <Typography sx={infoBoxText}>{distance ? distance : 0}</Typography>
                      </Box>
                      <Avatar sx={avatarLay}>
                         {/* <i className="fa-solid fa-car-side fa-xl"></i> */}
@@ -240,7 +296,7 @@ const Homepage = () => {
 
                   <Box sx={infoBoxLay}>
                      <Box sx={infoBoxContent} borderRadius={2}>
-                        <Typography sx={infoBoxText}>{duration ? duration : 0} Mins</Typography>
+                        <Typography sx={infoBoxText}>{duration ? duration : 0}</Typography>
                      </Box>
                      <Avatar sx={avatarLay}>
                         <AccessTime sx={infoBoxIcon} />
