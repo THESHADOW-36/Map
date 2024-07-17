@@ -15,15 +15,14 @@ import { decodePolyline } from '../utils/decodePolyline';
 const Homepage = () => {
 
    const [predictions, setPredictions] = useState([]);
+   const [location, setLocation] = useState(null);
    const [fromLocation, setFromLocation] = useState(null);
    const [toLocation, setToLocation] = useState(null);
-   const [location, setLocation] = useState(null);
    const [travelMode, setTravelMode] = useState('DRIVING');
    const [searchMode, setSearchMode] = useState(true);
    const [distance, setDistance] = useState("");
    const [duration, setDuration] = useState("");
    const [route, setRoute] = useState([]);
-
 
    const mapContainer = useRef(null);
    const map = useRef(null);
@@ -34,6 +33,7 @@ const Homepage = () => {
    const toGeoCoder = toLocation?.lat + '%2C' + toLocation?.lng
 
    const center = [73.0297, 19.0330]
+   const mapCenteringCord = fromLocation ? [fromLocation.lng, fromLocation.lat] : center
 
    const handleSearchMode = (value) => {
       setSearchMode(value)
@@ -66,7 +66,10 @@ const Homepage = () => {
    }
 
 
-   const handleAutocomplete = async (input, inputName) => {
+   const handleAutocomplete = async (input) => {
+      console.log("onInputChange ===> handleAutocomplete")
+
+
       if (!input) return;
 
       try {
@@ -82,7 +85,9 @@ const Homepage = () => {
          console.error('Autocomplete request failed:', error);
       }
    }
+
    const handleSelectPrediction = (prediction, inputName) => {
+      console.log("onChange ===> handleSelectPrediction:")
       if (inputName === 'From') {
          setFromLocation(prediction?.geometry?.location);
       } else if (inputName === 'To') {
@@ -113,7 +118,7 @@ const Homepage = () => {
       map.current = new maptilersdk.Map({
          container: mapContainer.current,
          zoom: 12,
-         center: center,
+         center: mapCenteringCord,
          style: "streets-v2"
       });
 
@@ -202,6 +207,7 @@ const Homepage = () => {
                         onInputChange={(event, newValue) => handleAutocomplete(newValue, 'From')}
                         renderInput={(params) => <TextField {...params} label="From" variant="outlined" size="small" fullWidth />}
                         onChange={(event, value) => handleSelectPrediction(value, 'From')}
+                        clearOnEscape
                      />
                      <Autocomplete
                         sx={textField}
