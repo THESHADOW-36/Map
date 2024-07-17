@@ -11,6 +11,7 @@ import './Map.css';
 
 import * as maptilersdk from '@maptiler/sdk';
 import { decodePolyline } from '../utils/decodePolyline';
+import { getBounds } from '../utils/calculatebounds';
 
 const Homepage = () => {
 
@@ -23,9 +24,12 @@ const Homepage = () => {
    const [distance, setDistance] = useState("");
    const [duration, setDuration] = useState("");
    const [route, setRoute] = useState([]);
+   const [markers, setMarkers] = useState({ from: null, to: null });
+   console.log(route[0][0])
 
    const mapContainer = useRef(null);
    const map = useRef(null);
+
    maptilersdk.config.apiKey = 'o80P0bXGur9l8vrfOHHN';
 
 
@@ -45,6 +49,7 @@ const Homepage = () => {
          return toast.error("Empty field")
       }
       try {
+         console.log(markers)
 
          const response = await axios.post(`https://api.olamaps.io/routing/v1/directions?origin=${fromGeoCoder}&destination=${toGeoCoder}&alternatives=false&steps=true&overview=full&language=en&traffic_metadata=false&api_key=58q7R2LaL3IlQ7BYkNKaZOlyJsJSuVtFos1MOYe3`);
 
@@ -60,6 +65,15 @@ const Homepage = () => {
          const hours = Math.floor(durationInSeconds / 3600);
          const minutes = Math.floor((durationInSeconds % 3600) / 60);
          setDuration(`${hours} Hrs ${minutes} Mins`);
+
+         Marker();
+
+         const bounds = getBounds(decodedRoute.map(point => [point.lng, point.lat]));
+         console.log("bounds :", bounds)
+         if (map.current) {
+            map.current.fitBounds(bounds, { padding: 50 });
+         }
+
       } catch (error) {
          console.error('Directions request failed:', error);
       }
@@ -97,21 +111,6 @@ const Homepage = () => {
       }
       setPredictions([]);
    };
-
-   const Marker = () => {
-
-      if (fromLocation) {
-         new maptilersdk.Marker({ color: "#FF0000" })
-            .setLngLat([fromLocation.lng, fromLocation.lat])
-            .addTo(map.current)
-      }
-
-      if (toLocation) {
-         new maptilersdk.Marker({ color: "#FF0000" })
-            .setLngLat([toLocation.lng, toLocation.lat])
-            .addTo(map.current);
-      }
-   }
 
    const maptiler = () => {
       if (map.current) return;
@@ -152,15 +151,56 @@ const Homepage = () => {
       });
    }
 
+   const Marker = () => {
+      if (fromLocation) {
+         if (markers.from) {
+            markers.from.remove();
+         }
+         const markerFrom = new maptilersdk.Marker({ color: "#FF0000" })
+            .setLngLat([fromLocation.lng, fromLocation.lat])
+            .addTo(map.current);
+         setMarkers(prevMarkers => ({ ...prevMarkers, from: markerFrom }));
+      }
+
+      if (toLocation) {
+         if (markers.to) {
+            markers.to.remove();
+         }
+         const markerTo = new maptilersdk.Marker({ color: "#FF0000" })
+            .setLngLat([toLocation.lng, toLocation.lat])
+            .addTo(map.current);
+         setMarkers(prevMarkers => ({ ...prevMarkers, to: markerTo }));
+      }
+   }
+
    const clearRoute = () => {
-      setFromLocation(null)
-      setToLocation(null)
-      setLocation(null)
-      setDistance("")
-      setDuration("")
+      setFromLocation(null);
+      setToLocation(null);
+      setLocation(null);
+      setDistance("");
+      setDuration("");
       setPredictions([]);
       setRoute([]);
-   }
+
+      if (map.current) {
+
+         if (map.current.getLayer('route')) {
+            map.current.removeLayer('route');
+         }
+         if (map.current.getSource('route')) {
+            map.current.removeSource('route');
+         }
+
+         if (markers.from) {
+            markers.from.remove();
+            markers.from = null;
+         }
+         if (markers.to) {
+            markers.to.remove();
+            markers.to = null;
+         }
+      }
+   };
 
    useEffect(() => {
       if (fromLocation && toLocation) {
@@ -184,6 +224,10 @@ const Homepage = () => {
                coordinates: route
             }
          });
+
+         const bounds = getBounds(route);
+         map.current.fitBounds(bounds, { padding: 50 });
+
       }
    }, [route]);
 
@@ -192,9 +236,7 @@ const Homepage = () => {
       <Box sx={homepage}>
          <Box>
          </Box>
-         <Box width="100%" height="100%" ref={mapContainer} >
-            {(fromLocation && toLocation) && <Marker />}
-         </Box>
+         <Box width="100%" height="100%" ref={mapContainer} />
          <Box sx={mapInfoLay}>
             <Box sx={searchLay}>
                {searchMode ?
