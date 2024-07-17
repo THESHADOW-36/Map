@@ -24,6 +24,7 @@ const Homepage = () => {
    const [duration, setDuration] = useState("");
    const [route, setRoute] = useState([]);
 
+
    const mapContainer = useRef(null);
    const map = useRef(null);
    maptilersdk.config.apiKey = 'o80P0bXGur9l8vrfOHHN';
@@ -32,18 +33,7 @@ const Homepage = () => {
    const fromGeoCoder = fromLocation?.lat + '%2C' + fromLocation?.lng
    const toGeoCoder = toLocation?.lat + '%2C' + toLocation?.lng
 
-
    const center = [73.0297, 19.0330]
-   const clearRoute = () => {
-      setFromLocation(null)
-      setToLocation(null)
-      setLocation(null)
-      setDistance("")
-      setDuration("")
-      setPredictions([]);
-      setRoute([]);
-   }
-
 
    const handleSearchMode = (value) => {
       setSearchMode(value)
@@ -86,7 +76,6 @@ const Homepage = () => {
                api_key: process.env.REACT_APP_OLA_MAP_API_KEY
             }
          });
-         console.log("response:", response.data)
          setPredictions(response.data.predictions);
 
       } catch (error) {
@@ -101,8 +90,23 @@ const Homepage = () => {
       } else if (inputName === 'Location') {
          setLocation(prediction?.geometry?.location)
       }
-      // setPredictions([]);
+      setPredictions([]);
    };
+
+   const Marker = () => {
+
+      if (fromLocation) {
+         new maptilersdk.Marker({ color: "#FF0000" })
+            .setLngLat([fromLocation.lng, fromLocation.lat])
+            .addTo(map.current)
+      }
+
+      if (toLocation) {
+         new maptilersdk.Marker({ color: "#FF0000" })
+            .setLngLat([toLocation.lng, toLocation.lat])
+            .addTo(map.current);
+      }
+   }
 
    const maptiler = () => {
       if (map.current) return;
@@ -140,19 +144,17 @@ const Homepage = () => {
                'line-opacity': 0.75
             }
          });
-
-         if (fromLocation) {
-            new maptilersdk.Marker({ color: "#FF0000" })
-               .setLngLat(route.flat()[0])
-               .addTo(map.current);
-         }
-
-         if (toLocation) {
-            new maptilersdk.Marker({ color: "#FF0000" })
-               .setLngLat([toLocation.lng, toLocation.lat])
-               .addTo(map.current);
-         }
       });
+   }
+
+   const clearRoute = () => {
+      setFromLocation(null)
+      setToLocation(null)
+      setLocation(null)
+      setDistance("")
+      setDuration("")
+      setPredictions([]);
+      setRoute([]);
    }
 
    useEffect(() => {
@@ -164,11 +166,12 @@ const Homepage = () => {
 
    useEffect(() => {
       maptiler()
+      // eslint-disable-next-line
    }, [center, fromLocation, toLocation]);
 
    useEffect(() => {
       if (route.length > 0 && map.current) {
-         const mapRoute = map.current.getSource('route').setData({
+         map.current.getSource('route').setData({
             type: 'Feature',
             properties: {},
             geometry: {
@@ -180,28 +183,13 @@ const Homepage = () => {
    }, [route]);
 
 
-
-
-
-   console.log("Boolean(fromLocation) :", !Boolean(fromLocation))
    return (
       <Box sx={homepage}>
          <Box>
-            {/* <MapContainer center={location ? location : center} zoom={13} style={{ zIndex: '1', height: '1000px', width: '100%' }}>
-               <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-               />
-               {location &&
-                  <Marker position={location}></Marker>
-               }
-               <Polyline positions={route} color="blue" />
-            </MapContainer> */}
-            {/* <div className="map-wrap">
-               <div ref={mapContainer} className="map" />
-            </div> */}
          </Box>
-         <Box width="100%" height="100%" ref={mapContainer} />
+         <Box width="100%" height="100%" ref={mapContainer} >
+            {(fromLocation && toLocation) && <Marker />}
+         </Box>
          <Box sx={mapInfoLay}>
             <Box sx={searchLay}>
                {searchMode ?
@@ -269,8 +257,6 @@ const Homepage = () => {
                   </Grid>
                </Grid>
             </Box>
-
-
 
 
 
