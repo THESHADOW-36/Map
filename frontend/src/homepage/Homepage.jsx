@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react'
-import toast from 'react-hot-toast'
+import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
-import { Autocomplete, Avatar, Box, Button, Grid, TextField, Typography } from '@mui/material'
-import { avatarLay, homepage, infoBoxContainer, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, mapInfoLay, searchBtnLg, searchBtnXs, searchCancelBtnLg, searchCancelBtnXs, searchLay, searchModeBtn, textField, travelModeBtn, travelModeLay } from './HomepageStyle'
-import { AccessTime, Directions, DirectionsCar, DirectionsTransit, DirectionsWalk, HighlightOff, LocationOn, MyLocation, Search } from '@mui/icons-material';
+import { Autocomplete, Avatar, Box, Button, Grid, TextField, Typography } from '@mui/material';
+import { avatarLay, homepage, infoBoxContainer, infoBoxContent, infoBoxIcon, infoBoxLay, infoBoxText, mapInfoLay, searchBtnLg, searchBtnXs, searchCancelBtnLg, searchLay, searchModeBtn, textField, travelModeBtn, travelModeLay } from './HomepageStyle';
+import { AccessTime, Directions, DirectionsCar, DirectionsTransit, DirectionsWalk, LocationOn, MyLocation, Search } from '@mui/icons-material';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './Map.css';
@@ -14,7 +14,7 @@ import { decodePolyline } from '../utils/decodePolyline';
 import { getBounds } from '../utils/calculatebounds';
 
 const Homepage = () => {
-
+   const [onelocation, setonelocation] = useState('')
    const [predictions, setPredictions] = useState([]);
    const [location, setLocation] = useState(null);
    const [fromLocation, setFromLocation] = useState(null);
@@ -25,12 +25,12 @@ const Homepage = () => {
    const [duration, setDuration] = useState("");
    const [route, setRoute] = useState([]);
    const [markers, setMarkers] = useState({ from: null, to: null });
-   console.log(route[0][0])
+   // console.log(route[0][0])
 
    const mapContainer = useRef(null);
    const map = useRef(null);
-
    maptilersdk.config.apiKey = 'o80P0bXGur9l8vrfOHHN';
+
 
 
    const fromGeoCoder = fromLocation?.lat + '%2C' + fromLocation?.lng
@@ -40,24 +40,22 @@ const Homepage = () => {
    const mapCenteringCord = fromLocation ? [fromLocation.lng, fromLocation.lat] : center
 
    const handleSearchMode = (value) => {
-      setSearchMode(value)
-      // clearRoute()
-   }
+      setSearchMode(value);
+   };
 
    const calculateRoute = async () => {
-      if (toLocation === null || fromLocation === null) {
-         return toast.error("Empty field")
+      if (!fromLocation || !toLocation) {
+         return toast.error("Please select both 'From' and 'To' locations.");
       }
+
       try {
-         console.log(markers)
 
          const response = await axios.post(`https://api.olamaps.io/routing/v1/directions?origin=${fromGeoCoder}&destination=${toGeoCoder}&alternatives=false&steps=true&overview=full&language=en&traffic_metadata=false&api_key=58q7R2LaL3IlQ7BYkNKaZOlyJsJSuVtFos1MOYe3`);
 
          const decodedRoute = decodePolyline(response.data.routes[0].overview_polyline);
+         setRoute(decodedRoute.map(point => [point.lng, point.lat]));
 
-         setRoute(decodedRoute.map(point => [point.lng, point.lat]))
-
-         const distance = response.data.routes[0].legs[0].distance
+         const distance = response.data.routes[0].legs[0].distance;
          const distanceInKm = (distance / 1000).toFixed(2);
          setDistance(`${distanceInKm} KM`);
 
@@ -77,9 +75,25 @@ const Homepage = () => {
       } catch (error) {
          console.error('Directions request failed:', error);
       }
-   }
+   };
 
-
+   const singlelocation = async () => {
+      try {
+         const response = await axios.get(`https://api.olamaps.io/places/v1/geocode`, {
+            params: {
+               address: 'thane',
+               language: 'English',
+               api_key: '58q7R2LaL3IlQ7BYkNKaZOlyJsJSuVtFos1MOYe3'
+            }
+           
+         });
+         console.log(response)
+         setonelocation(response.data.onelocation)
+      } catch (error) {
+         console.log('Single location not found', error);
+      }
+   };
+  
    const handleAutocomplete = async (input) => {
       console.log("onInputChange ===> handleAutocomplete")
 
@@ -94,6 +108,7 @@ const Homepage = () => {
             }
          });
          setPredictions(response.data.predictions);
+         console.log(response)
 
       } catch (error) {
          console.error('Autocomplete request failed:', error);
@@ -105,9 +120,9 @@ const Homepage = () => {
       if (inputName === 'From') {
          setFromLocation(prediction?.geometry?.location);
       } else if (inputName === 'To') {
-         setToLocation(prediction?.geometry?.location)
+         setToLocation(prediction?.geometry?.location);
       } else if (inputName === 'Location') {
-         setLocation(prediction?.geometry?.location)
+         setLocation(prediction?.geometry?.location);
       }
       setPredictions([]);
    };
@@ -179,6 +194,11 @@ const Homepage = () => {
       setLocation(null);
       setDistance("");
       setDuration("");
+      setFromLocation(null);
+      setToLocation(null);
+      setLocation(null);
+      setDistance("");
+      setDuration("");
       setPredictions([]);
       setRoute([]);
 
@@ -201,18 +221,14 @@ const Homepage = () => {
          }
       }
    };
-
+   console.log("mapContainer:", mapContainer)
    useEffect(() => {
       if (fromLocation && toLocation) {
          calculateRoute();
+       
       }
-      // eslint-disable-next-line
-   }, [travelMode, location]);
-
-   useEffect(() => {
       maptiler()
-      // eslint-disable-next-line
-   }, [center, fromLocation, toLocation]);
+   }, [fromLocation, toLocation]);
 
    useEffect(() => {
       if (route.length > 0 && map.current) {
@@ -230,7 +246,6 @@ const Homepage = () => {
 
       }
    }, [route]);
-
 
    return (
       <Box sx={homepage}>
@@ -282,6 +297,7 @@ const Homepage = () => {
                         <Grid item xs={3} md={6} container justifyContent="center">
                            <Button variant="contained" sx={searchBtnXs} fullWidth onClick={calculateRoute}><Search /></Button>
                            <Button variant="contained" sx={searchBtnLg} fullWidth onClick={calculateRoute}>Search</Button>
+
                         </Grid>
                      </>
                      :
@@ -290,8 +306,8 @@ const Homepage = () => {
                            <Button variant="contained" sx={searchModeBtn} onClick={() => handleSearchMode(true)} fullWidth><Directions /></Button>
                         </Grid>
                         <Grid item xs={3} md={6} container justifyContent="center">
-                           <Button variant="contained" sx={searchBtnXs} fullWidth ><Search /></Button>
-                           <Button variant="contained" sx={searchBtnLg} fullWidth >Search</Button>
+                           <Button variant="contained" sx={searchBtnXs} fullWidth><Search /></Button>
+                           <Button variant="contained" sx={searchBtnLg} onClick={singlelocation} fullWidth>Search</Button>
                         </Grid>
                      </>
                   }
@@ -300,13 +316,10 @@ const Homepage = () => {
                      <Button variant="contained" sx={searchModeBtn} fullWidth><MyLocation fontSize='small' /></Button>
                   </Grid>
                   <Grid item xs={3} md={12}>
-                     <Button variant="contained" sx={searchCancelBtnXs} color="error" fullWidth onClick={clearRoute}><HighlightOff /></Button>
                      <Button variant="contained" sx={searchCancelBtnLg} color="error" fullWidth onClick={clearRoute}>Cancel</Button>
                   </Grid>
                </Grid>
             </Box>
-
-
 
             <Box sx={travelModeLay}>
                <Box sx={travelModeBtn}>
@@ -321,7 +334,6 @@ const Homepage = () => {
                         <Typography sx={infoBoxText}>{distance ? distance : 0}</Typography>
                      </Box>
                      <Avatar sx={avatarLay}>
-                        {/* <i className="fa-solid fa-car-side fa-xl"></i> */}
                         {travelMode === "DRIVING" && <DirectionsCar fontSize='large' />}
                         {travelMode === "TRANSIT" && <DirectionsTransit fontSize='large' />}
                         {travelMode === "WALKING" && <DirectionsWalk fontSize='large' />}
@@ -339,8 +351,9 @@ const Homepage = () => {
                </Box>
             </Box>
          </Box>
-      </Box >
-   )
-}
+      </Box>
+   );
+};
 
-export default Homepage
+export default Homepage;
+
